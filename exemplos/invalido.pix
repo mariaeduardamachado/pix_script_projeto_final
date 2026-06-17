@@ -1,0 +1,7 @@
+LEDGER erro
+    LET @nome <- 'Teste'
+    LET $valor <- 500.00
+    IF ($valor >> 100.00) {
+        $> 'Valor alto'
+    
+CLOSE

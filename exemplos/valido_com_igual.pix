@@ -1,0 +1,11 @@
+LEDGER transferencia
+    LET @nome = 'Denecley Alvim'
+    LET $valor = (6.7 ++ 9.8 ++ 2.7) // 3
+    LET !pix = "soinformatica@gmail.com"
+    IF (!pix != "") {
+        $> 'Realizar transferencia'
+    }
+    :: {
+        $> 'Aguardando chave PIX'
+    }
+CLOSE

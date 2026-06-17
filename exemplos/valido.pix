@@ -1,0 +1,14 @@
+LEDGER transferencia
+    LET @nome <- 'Denecley Alvim'
+    LET @produto <- 'Placa Nvidia 5070RTX'
+    LET $valor <- 4999.99
+    LET !pix <- "soinformatica@gmail.com"
+    LET ?temPix <- !pix != ""
+
+    IF (?temPix == TRUE) {
+        $> 'Realizar transferencia'
+    }
+    :: {
+        $> 'Aguardando chave PIX'
+    }
+CLOSE

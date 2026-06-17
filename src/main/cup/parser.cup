@@ -1,0 +1,207 @@
+import br.edu.ifgoiano.pixscript.ast.AstNode;
+import br.edu.ifgoiano.pixscript.errors.ErrorLogger;
+import java_cup.runtime.Symbol;
+import java.util.ArrayList;
+import java.util.List;
+
+parser code {:
+    private ErrorLogger errorLogger;
+
+    public void setErrorLogger(ErrorLogger errorLogger) {
+        this.errorLogger = errorLogger;
+    }
+
+    private AstNode node(String name) {
+        return new AstNode(name);
+    }
+
+    private AstNode node(String name, Object value) {
+        return new AstNode(name, value);
+    }
+
+    private AstNode op(String name, AstNode left, AstNode right) {
+        return new AstNode(name).add(left).add(right);
+    }
+
+    @Override
+    public void syntax_error(Symbol current) {
+        if (errorLogger != null) {
+            String value = current == null || current.value == null ? "" : String.valueOf(current.value);
+            errorLogger.syntactic("Token inesperado na análise sintática: " + value, current == null ? 0 : current.left, current == null ? 0 : current.right);
+        }
+    }
+
+    @Override
+    public void unrecovered_syntax_error(Symbol current) throws Exception {
+        syntax_error(current);
+        throw new Exception("Erro sintático não recuperado.");
+    }
+:};
+
+terminal LEDGER, CLOSE, LET, PRINT;
+terminal ASSIGN, ASSIGN_EQ;
+terminal TYPE_DECIMAL, TYPE_INT, TYPE_TEXT, TYPE_BOOL, TYPE_PIX, TYPE_NULL;
+terminal PLUS, MINUS, TIMES, DIVIDE, MOD;
+terminal EQ, NEQ, GT, LT, GTE, LTE;
+terminal AND, OR, NOT;
+terminal IF, ELSE;
+terminal LPAREN, RPAREN, LBRACE, RBRACE;
+terminal String ID, TEXT_LITERAL, PIX_LITERAL, UNKNOWN;
+terminal Integer INT_LITERAL;
+terminal Double DECIMAL_LITERAL;
+terminal Boolean BOOL_LITERAL;
+
+non terminal AstNode program, statement, declaration, assignment, print_stmt, if_stmt, block;
+non terminal AstNode expression, logical_or, logical_and, equality, relation, additive, multiplicative, unary, factor, literal, variable;
+non terminal List statement_list;
+non terminal String type, assign_op;
+
+start with program;
+
+program ::= LEDGER ID:programName statement_list:statements CLOSE
+    {: RESULT = node("PROGRAMA", programName).add(new AstNode("COMANDOS").addAll((List<AstNode>) statements)); :}
+    ;
+
+statement_list ::= statement_list:list statement:stmt
+    {: ((List<AstNode>) list).add(stmt); RESULT = list; :}
+    | /* vazio */
+    {: RESULT = new ArrayList<AstNode>(); :}
+    ;
+
+statement ::= declaration:d
+    {: RESULT = d; :}
+    | assignment:a
+    {: RESULT = a; :}
+    | print_stmt:p
+    {: RESULT = p; :}
+    | if_stmt:i
+    {: RESULT = i; :}
+    ;
+
+declaration ::= LET type:t ID:name
+    {: RESULT = node("DECLARACAO", t + name); :}
+    | LET type:t ID:name assign_op expression:expr
+    {: RESULT = node("DECLARACAO", t + name).add(expr); :}
+    ;
+
+assignment ::= variable:v assign_op expression:expr
+    {: RESULT = node("ATRIBUICAO").add(v).add(expr); :}
+    ;
+
+assign_op ::= ASSIGN
+    {: RESULT = "<-"; :}
+    | ASSIGN_EQ
+    {: RESULT = "="; :}
+    ;
+
+print_stmt ::= PRINT expression:expr
+    {: RESULT = node("SAIDA").add(expr); :}
+    ;
+
+if_stmt ::= IF LPAREN expression:cond RPAREN block:thenBlock
+    {: RESULT = node("IF").add(cond).add(thenBlock); :}
+    | IF LPAREN expression:cond RPAREN block:thenBlock ELSE block:elseBlock
+    {: RESULT = node("IF_ELSE").add(cond).add(thenBlock).add(elseBlock); :}
+    ;
+
+block ::= LBRACE statement_list:statements RBRACE
+    {: RESULT = node("BLOCO").addAll((List<AstNode>) statements); :}
+    ;
+
+type ::= TYPE_DECIMAL
+    {: RESULT = "$"; :}
+    | TYPE_INT
+    {: RESULT = "#"; :}
+    | TYPE_TEXT
+    {: RESULT = "@"; :}
+    | TYPE_BOOL
+    {: RESULT = "?"; :}
+    | TYPE_PIX
+    {: RESULT = "!"; :}
+    | TYPE_NULL
+    {: RESULT = "~"; :}
+    ;
+
+variable ::= type:t ID:name
+    {: RESULT = node("VARIAVEL", t + name); :}
+    ;
+
+expression ::= logical_or:e
+    {: RESULT = e; :}
+    ;
+
+logical_or ::= logical_or:l OR logical_and:r
+    {: RESULT = op("OR", l, r); :}
+    | logical_and:e
+    {: RESULT = e; :}
+    ;
+
+logical_and ::= logical_and:l AND equality:r
+    {: RESULT = op("AND", l, r); :}
+    | equality:e
+    {: RESULT = e; :}
+    ;
+
+equality ::= equality:l EQ relation:r
+    {: RESULT = op("IGUAL", l, r); :}
+    | equality:l NEQ relation:r
+    {: RESULT = op("DIFERENTE", l, r); :}
+    | relation:e
+    {: RESULT = e; :}
+    ;
+
+relation ::= relation:l GT additive:r
+    {: RESULT = op("MAIOR", l, r); :}
+    | relation:l LT additive:r
+    {: RESULT = op("MENOR", l, r); :}
+    | relation:l GTE additive:r
+    {: RESULT = op("MAIOR_IGUAL", l, r); :}
+    | relation:l LTE additive:r
+    {: RESULT = op("MENOR_IGUAL", l, r); :}
+    | additive:e
+    {: RESULT = e; :}
+    ;
+
+additive ::= additive:l PLUS multiplicative:r
+    {: RESULT = op("SOMA", l, r); :}
+    | additive:l MINUS multiplicative:r
+    {: RESULT = op("SUBTRACAO", l, r); :}
+    | multiplicative:e
+    {: RESULT = e; :}
+    ;
+
+multiplicative ::= multiplicative:l TIMES unary:r
+    {: RESULT = op("MULTIPLICACAO", l, r); :}
+    | multiplicative:l DIVIDE unary:r
+    {: RESULT = op("DIVISAO", l, r); :}
+    | multiplicative:l MOD unary:r
+    {: RESULT = op("RESTO", l, r); :}
+    | unary:e
+    {: RESULT = e; :}
+    ;
+
+unary ::= NOT unary:e
+    {: RESULT = node("NOT").add(e); :}
+    | factor:e
+    {: RESULT = e; :}
+    ;
+
+factor ::= LPAREN expression:e RPAREN
+    {: RESULT = e; :}
+    | variable:v
+    {: RESULT = v; :}
+    | literal:l
+    {: RESULT = l; :}
+    ;
+
+literal ::= INT_LITERAL:v
+    {: RESULT = node("INTEIRO", v); :}
+    | DECIMAL_LITERAL:v
+    {: RESULT = node("DECIMAL", v); :}
+    | TEXT_LITERAL:v
+    {: RESULT = node("TEXTO", v); :}
+    | PIX_LITERAL:v
+    {: RESULT = node("CHAVE_PIX", v); :}
+    | BOOL_LITERAL:v
+    {: RESULT = node("BOOLEANO", v); :}
+    ;
