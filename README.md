@@ -1,85 +1,201 @@
-# Projeto PIX Script - Java + JFlex + JCup + JUnit
+# Projeto PIX Script — Analisador Léxico e Sintático
 
-Projeto da disciplina de Compiladores para validar códigos escritos na linguagem PIX Script.
+## Apresentação do Projeto
 
-## O que este projeto atende
+Este projeto foi desenvolvido para a disciplina de **Compiladores**, com o objetivo de implementar um analisador para a linguagem fictícia **PIX Script**.
 
-- Linguagem implementada em **Java**.
-- Analisador léxico feito com **JFlex**: `src/main/jflex/PixLexer.flex`.
-- Analisador sintático feito com **JCup**: `src/main/cup/parser.cup`.
-- Testes automatizados com **JUnit 5**: `src/test/java`.
-- Sistema de log de erros léxicos e sintáticos.
-- Tabela de símbolos sem repetição de lexemas.
-- Gravação da tabela de símbolos e dos erros em banco H2.
-- Geração da árvore de derivação em `.dot` e `.png`.
-- Exemplos de código válido e inválido.
+A linguagem PIX Script foi proposta como uma linguagem de programação inspirada no sistema de pagamentos PIX. Ela possui uma estrutura própria, com palavras reservadas, tipos de dados, operadores, comandos de saída, declaração de variáveis e estruturas condicionais.
 
-## Pré-requisitos
+O principal objetivo do projeto é verificar se um código escrito em PIX Script está correto de acordo com as regras léxicas e sintáticas definidas no enunciado do trabalho.
 
-Instale:
+## Objetivo Geral
 
-- Java JDK 17 ou superior;
-- Maven 3.8 ou superior.
+Desenvolver um analisador capaz de ler um arquivo contendo código em PIX Script e verificar se ele está válido ou inválido.
 
-Para conferir:
+Durante a análise, o sistema identifica os tokens da linguagem, valida a estrutura do programa, registra possíveis erros, gera a tabela de símbolos e cria uma árvore de derivação do código analisado.
 
-```bash
-java -version
-mvn -version
+## Tecnologias Utilizadas
+
+O projeto foi desenvolvido em **Java**, utilizando ferramentas tradicionais da disciplina de Compiladores:
+
+* **Java**: linguagem principal do projeto;
+* **JFlex**: utilizado para criar o analisador léxico;
+* **JCup**: utilizado para criar o analisador sintático;
+* **JUnit**: utilizado para testes automatizados;
+* **Maven**: utilizado para organizar, compilar e executar o projeto;
+* **Graphviz**: utilizado para gerar a imagem da árvore de derivação;
+* **Banco de dados**: utilizado para armazenar informações da tabela de símbolos e logs de erro.
+
+## O que o Analisador Léxico Faz
+
+O analisador léxico é responsável por ler o código-fonte e separar cada parte do programa em tokens.
+
+Ele reconhece, por exemplo:
+
+* palavras reservadas como `LEDGER`, `CLOSE`, `LET`, `IF`, `TRUE` e `FALSE`;
+* tipos da linguagem como `$`, `#`, `@`, `?`, `!` e `~`;
+* identificadores de variáveis;
+* números inteiros e decimais;
+* textos entre aspas;
+* operadores aritméticos, relacionais e lógicos;
+* símbolos como parênteses, chaves e operadores de atribuição.
+
+Quando encontra algum símbolo inválido, o analisador registra o erro no sistema de log.
+
+## O que o Analisador Sintático Faz
+
+O analisador sintático verifica se os tokens encontrados pelo analisador léxico estão organizados corretamente de acordo com a gramática da linguagem PIX Script.
+
+Ele valida estruturas como:
+
+```pix
+LEDGER MeuPrograma
+    LET @nome <- 'Aluno'
+    LET $valor <- 250.50
+
+    IF ($valor >> 100.00) {
+        $> 'Valor alto'
+    }
+    :: {
+        $> 'Valor baixo'
+    }
+CLOSE
 ```
 
-## Como executar os testes JUnit
+O programa precisa começar com `LEDGER`, possuir um nome e terminar com `CLOSE`.
 
-Na pasta raiz do projeto:
+Dentro do programa, podem existir declarações de variáveis, atribuições, comandos de saída e estruturas condicionais.
+
+## Gramática Livre de Contexto
+
+A gramática livre de contexto foi criada para representar as principais regras da linguagem PIX Script.
+
+Ela define como um programa deve ser formado, quais comandos são permitidos e como expressões podem ser escritas.
+
+De forma resumida, a estrutura principal da linguagem segue o seguinte modelo:
+
+```txt
+programa → LEDGER IDENTIFICADOR comandos CLOSE
+
+comandos → comando comandos | vazio
+
+comando → declaracao
+        | atribuicao
+        | saida
+        | condicional
+
+declaracao → LET tipo IDENTIFICADOR
+           | LET tipo IDENTIFICADOR ATRIBUICAO expressao
+
+atribuicao → variavel ATRIBUICAO expressao
+
+saida → SAIDA texto
+
+condicional → IF '(' expressao ')' '{' comandos '}'
+            | IF '(' expressao ')' '{' comandos '}' ELSE '{' comandos '}'
+```
+
+Essa gramática permite validar se o código segue a estrutura esperada da linguagem.
+
+## Tabela de Símbolos
+
+Durante a análise, o programa gera uma tabela de símbolos contendo os lexemas identificados no código.
+
+A tabela de símbolos armazena informações como:
+
+* lexema;
+* token;
+* linha;
+* coluna;
+* código analisado.
+
+Uma regra importante implementada no projeto é que os lexemas não devem se repetir na tabela de símbolos. Assim, caso o mesmo lexema apareça mais de uma vez no código, ele é registrado apenas uma vez.
+
+## Sistema de Log de Erros
+
+O sistema também possui um log de erros para armazenar problemas encontrados durante a análise.
+
+Os erros podem ser:
+
+* erros léxicos, quando aparece um símbolo inválido;
+* erros sintáticos, quando a estrutura do código está incorreta;
+* erros relacionados à formação dos comandos.
+
+Cada erro registrado contém informações como:
+
+* descrição do erro;
+* linha em que ocorreu;
+* coluna;
+* tipo do erro.
+
+Esses erros também podem ser gravados no banco de dados, conforme solicitado no trabalho.
+
+## Árvore de Derivação
+
+Além da análise léxica e sintática, o projeto também gera uma árvore de derivação.
+
+A árvore de derivação mostra visualmente como o código foi reconhecido pela gramática da linguagem.
+
+Ela é gerada em formato `.dot` e pode ser convertida em imagem utilizando o Graphviz.
+
+Essa parte é importante porque ajuda a demonstrar o funcionamento interno do analisador sintático.
+
+## Como Executar o Projeto
+
+Para executar o projeto, é necessário ter instalado:
+
+* Java JDK;
+* Maven;
+* Graphviz, caso deseje gerar a imagem da árvore.
+
+Depois de baixar o projeto, abra o terminal dentro da pasta principal e execute:
 
 ```bash
 mvn clean test
 ```
 
-Esse comando faz o Maven gerar automaticamente o lexer pelo JFlex, gerar o parser pelo JCup e depois executar os testes JUnit.
+Esse comando compila o projeto e executa os testes automatizados com JUnit.
 
-## Como executar um exemplo válido
+Para analisar um arquivo PIX Script válido, execute:
 
 ```bash
 mvn exec:java -Dexec.args="exemplos/valido.pix"
 ```
 
-Também existe um exemplo que usa `=` como no exemplo final do enunciado:
-
-```bash
-mvn exec:java -Dexec.args="exemplos/valido_com_igual.pix"
-```
-
-## Como executar um exemplo inválido
+Para testar um arquivo com erro, execute:
 
 ```bash
 mvn exec:java -Dexec.args="exemplos/invalido.pix"
 ```
 
-## Saídas geradas
+## Exemplos de Arquivos
 
-Depois da execução, os arquivos ficam em:
+O projeto possui exemplos para facilitar a apresentação e os testes.
 
-```text
-target/saida/<nome>_arvore.dot
-target/saida/<nome>_arvore.png
-target/db/pixscript.mv.db
-```
+O arquivo `valido.pix` contém um código correto em PIX Script.
 
-A árvore `.dot` pode ser aberta com Graphviz. A imagem `.png` é gerada automaticamente pelo próprio Java.
+O arquivo `invalido.pix` contém erros propositalmente inseridos para demonstrar o funcionamento do log de erros.
 
-## Banco de dados
+## Testes com JUnit
 
-O banco H2 fica em `target/db/pixscript.mv.db`.
+Foram criados testes automatizados com JUnit para verificar partes importantes do projeto.
 
-As tabelas criadas são:
+Os testes ajudam a confirmar se o analisador reconhece corretamente códigos válidos e identifica problemas em códigos inválidos.
 
-- `codeinfo`: informações do arquivo analisado;
-- `symbols`: lexemas/tokens sem repetição;
-- `errorlog`: erros léxicos e sintáticos encontrados.
+Isso torna o projeto mais confiável e facilita a verificação durante a apresentação.
 
-O modelo SQL está em `docs/modelo_banco.sql`.
+## Resultado Esperado
 
-## Observação sobre o operador de atribuição
+Ao executar o programa com um código válido, o sistema deve informar que a análise foi concluída com sucesso.
 
-O enunciado mostra o operador de atribuição como `<-`, porém o exemplo completo do final usa `=`. Para evitar problema na apresentação, o analisador aceita os dois formatos.
+Também são gerados os registros da tabela de símbolos e a árvore de derivação.
+
+Ao executar com um código inválido, o sistema deve apresentar os erros encontrados e registrar essas informações no log.
+
+## Conclusão
+
+Este projeto permitiu aplicar, na prática, conceitos estudados na disciplina de Compiladores.
+
+Com ele, foi possível desenvolver as etapas básicas de um compilador, incluindo análise léxica, análise sintática, geração de tabela de símbolos, registro de erros e geração de árvore de derivação.
+
+O uso do JFlex, JCup e JUnit ajudou a organizar melhor o projeto e aproximou a implementação de ferramentas utilizadas em projetos reais de análise de linguagens.
